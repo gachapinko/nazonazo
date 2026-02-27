@@ -1,202 +1,221 @@
 import streamlit as st
+import random
 
-# ページ設定
-st.set_page_config(page_title="わくわく！なぞなぞクイズ", page_icon="💡")
+# 1. ページ設定
+st.set_page_config(page_title="暇な時にやろう なぞなぞ パーティー", page_icon="🎉", layout="centered")
 
-# --- カスタムCSS（UIを可愛く、ボタンを大きく、赤く！） ---
-st.markdown("""
+# 2. クイズデータ（全カテゴリー）
+if "quiz_data" not in st.session_state:
+    st.session_state.quiz_data = {
+        "子供向け": [
+            {"q": "パンはパンでも、食べられないパンは何？", "h": "動物園にいる白黒の...", "a": "パンダ", "icon": "❓"},
+            {"q": "あかい色をしていて、あまくて、つぶつぶがあるくだものは？", "h": "冬から春が旬だよ", "a": "いちご", "icon": "😋"},
+            {"q": "おふろにいれると、ふわふわうかんで、からだをあらうときに使うものは？", "h": "あわあわになるよ", "a": "スポンジ", "icon": "🧼"},
+            {"q": "いつもおなかのポケットに赤ちゃんをいれている動物は？", "h": "ぴょんぴょんはねるよ", "a": "カンガルー", "icon": "🐾"},
+            {"q": "あお、きいろ、あか、の3つの色があって、みちで光っているものは？", "h": "「とまれ」や「すすめ」を教えてくれるよ", "a": "しんごう", "icon": "🚦"},
+            {"q": "よるにそらでピカピカ光っている、おほしさまの形をしたものは？", "h": "バナナみたいな形のときもあるよ", "a": "つき", "icon": "🌙"},
+            {"q": "しまうまの体にある、白と黒のもようは何ていう？", "h": "お洋服の柄でも人気だよ", "a": "しましま", "icon": "🦓"},
+            {"q": "ゾウさんの体の中で、一番長いところはどこ？", "h": "そこでお水を飲んだりもするよ", "a": "はな", "icon": "🐘"},
+            {"q": "お口を大きくあけて「ガオー」となく、百獣の王は？", "h": "かっこいい、たてがみがあるよ", "a": "ライオン", "icon": "🦁"},
+            {"q": "雨がやんだあと、空にかかる7色の橋はなーんだ？", "h": "お空の虹（にじ）のことだよ", "a": "にじ", "icon": "🌈"}
+        ],
+        "大人向け": [
+            {"q": "上に行けば行くほど、低くなるものは？", "h": "自分の「声」のことです", "a": "地声", "icon": "📢"},
+            {"q": "切っても切っても、切り口がない透明なものは？", "h": "蛇口をひねると出てくるよ", "a": "水", "icon": "🔍"},
+            {"q": "お父さんが嫌いな食べ物は何？", "h": "パパがいやだ（パパ・イヤ）と言うから...", "a": "パパイヤ", "icon": "🍴"},
+            {"q": "使うときは投げて、使わないときは引き上げるものは？", "h": "船が止まるときに使うよ", "a": "いかり", "icon": "⚓"},
+            {"q": "世界中にいるのに、一人もいない国はどこ？", "h": "国名に注目してみて", "a": "韓国", "icon": "🇰🇷"},
+            {"q": "あるときは2つ、ないときは0、これなーんだ？", "h": "漢字の「二」をイメージしてみて", "a": "穴", "icon": "🕳️"},
+            {"q": "火を通すと、名前が「あ」から「い」に変わる貝は？", "h": "焼くと「焼き〇〇」になるよね", "a": "あさり", "icon": "🐚"},
+            {"q": "春、夏、秋、冬、一番長いのはいつ？", "h": "文字数を数えてみて！", "a": "お正月", "icon": "🎍"},
+            {"q": "とっても大きなカメがいるけど、絶対に動かないカメは？", "h": "写真や動画を撮るのに使うよ", "a": "カメラ", "icon": "📸"},
+            {"q": "一軒家、マンション、アパート。一番おしゃべりなのはどれ？", "h": "「〇〇〇〇」がよく聞こえるよ", "a": "マンション", "icon": "🏢"}
+        ],
+        "女の子向け": [{"q": "ひらがな3文字。鏡の中の私に挨拶して？", "h": "こたえは「わたし」だよ", "a": "わたし", "icon": "✨"}] * 10,
+        "男の子向け": [{"q": "エンジンがついていて速く走る乗り物は？", "h": "ブーン！車だよ", "a": "くるま", "icon": "🏎️"}] * 10,
+        "ひっかけ問題": [{"q": "10円玉2枚、合計はいくら？", "h": "シンプルに考えて！", "a": "20円", "icon": "💰"}] * 10,
+        "雑学クイズ": [{"q": "シマウマの地肌の色は？", "h": "白か黒か...", "a": "黒", "icon": "🦓"}] * 10
+    }
+
+# 3. セッション管理
+if "course" not in st.session_state: st.session_state.course = None
+if "current_idx" not in st.session_state: st.session_state.current_idx = 0
+if "score" not in st.session_state: st.session_state.score = 0
+if "is_finished" not in st.session_state: st.session_state.is_finished = False
+if "hint_visible" not in st.session_state: st.session_state.hint_visible = False
+if "answered" not in st.session_state: st.session_state.answered = False
+if "wrong_list" not in st.session_state: st.session_state.wrong_list = [] # 間違えた問題を貯めるリスト
+
+# テーマ設定
+theme_styles = {
+    "子供向け": {"bg": "#fff3e0", "main": "#ff8f00", "dots": "#ffcc80"},
+    "大人向け": {"bg": "#fffde7", "main": "#fbc02d", "dots": "#fff59d"},
+    "女の子向け": {"bg": "#fce4ec", "main": "#ec407a", "dots": "#f8bbd0"},
+    "男の子向け": {"bg": "#e3f2fd", "main": "#1e88e5", "dots": "#bbdefb"},
+    "ひっかけ問題": {"bg": "#f3e5f5", "main": "#8e24aa", "dots": "#e1bee7"},
+    "雑学クイズ": {"bg": "#e8f5e9", "main": "#43a047", "dots": "#c8e6c9"},
+    "None": {"bg": "#ffffff", "main": "#ff8f00", "dots": "#eeeeee"}
+}
+current_style = theme_styles[str(st.session_state.course)]
+
+# スタイル適用
+st.markdown(f"""
     <style>
-    /* 全体の背景色 */
-    .stApp { background-color: #fffaf0; }
-    
-    /* コンテナを中央寄せ＆カード風に */
-    [data-testid="stVerticalBlock"] > div:has(.quiz-card) {
-        background: white;
+    .stApp {{
+        background-color: {current_style['bg']};
+        background-image: radial-gradient({current_style['dots']} 2px, transparent 2px);
+        background-size: 40px 40px;
+    }}
+    .quiz-card {{
+        background-color: #ffffff;
         padding: 30px;
         border-radius: 30px;
-        box-shadow: 0 10px 20px rgba(0,0,0,0.05);
-    }
-
-    /* カテゴリーボタン（大きく可愛く） */
-    div.stButton > button {
+        border: 5px solid {current_style['main']};
+        text-align: center;
+        margin-bottom: 20px;
+    }}
+    .stButton>button {{
         width: 100%;
-        height: 70px;
-        font-size: 20px !important;
+        border-radius: 50px;
         font-weight: bold;
-        border-radius: 20px;
-        border: 3px solid #ffdeeb !important;
-        background-color: white !important;
-        color: #555 !important;
+        transition: 0.3s;
+        border: none;
+    }}
+    .ans-btn button {{
+        background-color: #ef5350 !important;
+        color: white !important;
+        height: 3.5em !important;
+        box-shadow: 0 4px 0 #c62828;
+    }}
+    .next-btn button {{
+        background-color: {current_style['main']} !important;
+        color: white !important;
+        height: 3.5em !important;
+        box-shadow: 0 4px 0 {current_style['dots']};
+    }}
+    .retire-btn button {{
+        background-color: #f5f5f5 !important;
+        color: #999 !important;
+        height: 2.5em !important;
+    }}
+    .wrong-card {{
+        background-color: #fff1f0;
+        border-left: 5px solid #ff4d4f;
+        padding: 10px 20px;
         margin-bottom: 10px;
-    }
-
-    /* こたえあわせボタン（赤くて目立つ） */
-    div.stButton > button[kind="primary"] {
-        background-color: #ff4d4d !important;
-        color: white !important;
-        border: none !important;
-        height: 60px;
-        font-size: 22px !important;
-        box-shadow: 0 5px 0 #c0392b;
-    }
-    
-    /* つぎへボタン（緑） */
-    div.stButton > button[kind="secondaryFormSubmit"] {
-        background-color: #4CAF50 !important;
-        color: white !important;
-        border: none !important;
-    }
+        border-radius: 10px;
+        text-align: left;
+    }}
+    h1 {{ text-align: center; font-family: 'Hiragino Maru Gothic Pro'; }}
     </style>
     """, unsafe_allow_html=True)
 
-# --- クイズデータ（6カテゴリー × 10問） ---
-if 'quiz_data' not in st.session_state:
-    st.session_state.quiz_data = {
-        "たべもの 🍎": [
-            {"q": "パンはパンでも、たべられないパンは？", "a": "フライパン", "c": ["メロンパン", "フライパン", "フランスパン"]},
-            {"q": "上は火、下は水。これなーんだ？", "a": "おなべ", "c": ["おふろ", "おなべ", "やかん"]},
-            {"q": "外は赤くて中は白。シャリシャリなのは？", "a": "りんご", "c": ["りんご", "いちご", "スイカ"]},
-            {"q": "むけばむくほど涙が出る野菜は？", "a": "たまねぎ", "c": ["たまねぎ", "ネギ", "レタス"]},
-            {"q": "お父さんが嫌いな食べ物は？", "a": "パパイヤ", "c": ["ピーマン", "パパイヤ", "セロリ"]},
-            {"q": "黄色い服を脱ぐと白い体が出るのは？", "a": "バナナ", "c": ["レモン", "バナナ", "パイナツ"]},
-            {"q": "中身がないのに名前は「中身」なのは？", "a": "ちくわ", "c": ["ドーナツ", "ちくわ", "あめ"]},
-            {"q": "空を飛ぶお菓子は？", "a": "スカッシュ", "c": ["スカッシュ", "チョコ", "グミ"]},
-            {"q": "お弁当の真ん中の酸っぱいのは？", "a": "うめぼし", "c": ["トマト", "うめぼし", "さくらんぼ"]},
-            {"q": "冷たくてコーンに乗っているのは？", "a": "ソフトクリーム", "c": ["ソフトクリーム", "プリン", "かき氷"]}
-        ],
-        "いきもの 🐘": [
-            {"q": "鼻が長くて耳が大きいのは？", "a": "ゾウ", "c": ["キリン", "ゾウ", "カバ"]},
-            {"q": "首がとっても長いのは？", "a": "キリン", "c": ["キリン", "シカ", "ヘビ"]},
-            {"q": "シマシマ模様のウマは？", "a": "シマウマ", "c": ["シマウマ", "トラ", "ロバ"]},
-            {"q": "お腹に袋があるのは？", "a": "カンガルー", "c": ["カンガルー", "パンダ", "コアラ"]},
-            {"q": "ひっくり返るとお菓子になるのは？", "a": "カバ", "c": ["カバ", "トラ", "サル"]},
-            {"q": "「ワン！」と鳴くのは？", "a": "イヌ", "c": ["ネコ", "イヌ", "タヌキ"]},
-            {"q": "夜に「ホーホー」鳴くのは？", "a": "フクロウ", "c": ["ハト", "カラス", "フクロウ"]},
-            {"q": "竹を食べる白黒のクマは？", "a": "パンダ", "c": ["パンダ", "シロクマ", "レッサーパンダ"]},
-            {"q": "足が速い方の動物は？", "a": "ウサギ", "c": ["ウサギ", "カメ", "アリ"]},
-            {"q": "百獣の王は？", "a": "ライオン", "c": ["トラ", "ライオン", "ヒョウ"]}
-        ],
-        "がっこう 🏫": [
-            {"q": "荷物を入れる四角いカバンは？", "a": "ランドセル", "c": ["カバン", "ランドセル", "ふでばこ"]},
-            {"q": "字を消してくれるのは？", "a": "けしごむ", "c": ["えんぴつ", "けしごむ", "定規"]},
-            {"q": "黒板に字を書くのは？", "a": "チョーク", "c": ["マジック", "チョーク", "えんぴつ"]},
-            {"q": "みんなで食べるお昼ごはんは？", "a": "きゅうしょく", "c": ["おべんとう", "きゅうしょく", "おやつ"]},
-            {"q": "運動会で一番速く走る競技は？", "a": "リレー", "c": ["リレー", "玉入れ", "綱引き"]},
-            {"q": "長さを測る道具は？", "a": "ものさし", "c": ["のり", "ものさし", "はさみ"]},
-            {"q": "紙を切る道具は？", "a": "はさみ", "c": ["カッター", "はさみ", "定規"]},
-            {"q": "音楽で吹く縦笛は？", "a": "リコーダー", "c": ["リコーダー", "ピアノ", "太鼓"]},
-            {"q": "休み時間に遊ぶ広い場所は？", "a": "こうてい", "c": ["こうてい", "きょうしつ", "音楽室"]},
-            {"q": "朝のあいさつは？", "a": "おはよう", "c": ["おはよう", "こんにちは", "こんばんは"]}
-        ],
-        "のりもの 🚗": [
-            {"q": "線路の上を走る長い乗り物は？", "a": "でんしゃ", "c": ["バス", "でんしゃ", "ひこうき"]},
-            {"q": "空を飛ぶ大きな乗り物は？", "a": "ひこうき", "c": ["ふね", "ひこうき", "ヘリコプター"]},
-            {"q": "サイレンを鳴らして火事を消しに行くのは？", "a": "しょうぼうしゃ", "c": ["パトカー", "きゅうきゅうしゃ", "しょうぼうしゃ"]},
-            {"q": "海の上をぷかぷか進むのは？", "a": "ふね", "c": ["バス", "ふね", "サメ"]},
-            {"q": "病気の人を運ぶ白い車は？", "a": "きゅうきゅうしゃ", "c": ["パトカー", "きゅうきゅうしゃ", "トラック"]},
-            {"q": "足でこいで進む2輪車は？", "a": "じてんしゃ", "c": ["じてんしゃ", "バイク", "三輪車"]},
-            {"q": "土を掘る大きな腕がついた車は？", "a": "ショベルカー", "c": ["トラック", "ショベルカー", "クレーン車"]},
-            {"q": "宇宙まで行く乗り物は？", "a": "ロケット", "c": ["ひこうき", "ロケット", "UFO"]},
-            {"q": "たくさんの人を乗せて道路を走るのは？", "a": "バス", "c": ["タクシー", "バス", "でんしゃ"]},
-            {"q": "泥棒を追いかける白黒の車は？", "a": "パトカー", "c": ["パトカー", "トラック", "救急車"]}
-        ],
-        "からだ 💪": [
-            {"q": "においをかぐところは？", "a": "はな", "c": ["くち", "はな", "みみ"]},
-            {"q": "音をきくところは？", "a": "みみ", "c": ["め", "みみ", "はな"]},
-            {"q": "物を見るところは？", "a": "め", "c": ["め", "くち", "まゆげ"]},
-            {"q": "ごはんを食べるところは？", "a": "くち", "c": ["くち", "はな", "のど"]},
-            {"q": "考えるときに使うところは？", "a": "あたま", "c": ["あたま", "おなか", "せなか"]},
-            {"q": "歩くときに使うのは？", "a": "あし", "c": ["て", "あし", "かた"]},
-            {"q": "お辞儀をするときに曲げるのは？", "a": "こし", "c": ["ひざ", "こし", "ひじ"]},
-            {"q": "手の一番長い指はどれ？", "a": "なかゆび", "c": ["おやゆび", "なかゆび", "こゆび"]},
-            {"q": "食べたものが入る袋は？", "a": "おなか", "c": ["あたま", "おなか", "むね"]},
-            {"q": "笑うときに動くのは？", "a": "かお", "c": ["かお", "あし", "おしり"]}
-        ],
-        "うちゅう 🚀": [
-            {"q": "夜に光る、一番近い天体は？", "a": "つき", "c": ["たいよう", "つき", "火星"]},
-            {"q": "昼間にギラギラ光る大きな星は？", "a": "たいよう", "c": ["たいよう", "つき", "土星"]},
-            {"q": "輪っかがあることで有名な惑星は？", "a": "どせい", "c": ["木星", "土星", "火星"]},
-            {"q": "私たちが住んでいる星は？", "a": "ちきゅう", "c": ["ちきゅう", "月", "金星"]},
-            {"q": "宇宙にいる人のことを何という？", "a": "うちゅうひこうし", "c": ["パイロット", "うちゅうひこうし", "探検家"]},
-            {"q": "夜空にキラキラ光る小さな光は？", "a": "ほし", "c": ["ほし", "月", "たいよう"]},
-            {"q": "赤くて「火」の名前がついた星は？", "a": "かせい", "c": ["火星", "水星", "木星"]},
-            {"q": "宇宙の乗り物が発射される場所は？", "a": "ロケットセンター", "c": ["空港", "港", "ロケットセンター"]},
-            {"q": "宇宙にある、重力がとっても強い穴は？", "a": "ブラックホール", "c": ["ブラックホール", "ワームホール", "クレーター"]},
-            {"q": "星をみるための大きな道具は？", "a": "てんもんぼうえんきょう", "c": ["顕微鏡", "てんもんぼうえんきょう", "虫眼鏡"]}
-        ]
-    }
-
-# セッション初期化
-if 'page' not in st.session_state:
-    st.session_state.page = "top"
-    st.session_state.score = 0
-    st.session_state.q_index = 0
-    st.session_state.answered = False
-
-# --- 描画ロジック ---
-with st.container():
-    st.markdown('<div class="quiz-card">', unsafe_allow_html=True)
+# --- トップ画面 ---
+if st.session_state.course is None:
+    st.title("🎈 暇な時にやろう なぞなぞ パーティー 🎊")
+    st.write("<p style='text-align: center;'>どれであそぶ？</p>", unsafe_allow_html=True)
     
-    # TOP画面
-    if st.session_state.page == "top":
-        st.title("💡 なぞなぞクイズ")
-        st.write("カテゴリーをえらんでね！")
-        # 2列でボタンを配置
-        cols = st.columns(2)
-        cats = list(st.session_state.quiz_data.keys())
-        for i, cat in enumerate(cats):
-            if cols[i % 2].button(cat):
-                st.session_state.category = cat
-                st.session_state.page = "quiz"
-                st.rerun()
-
-    # クイズ画面
-    elif st.session_state.page == "quiz":
-        q_list = st.session_state.quiz_data[st.session_state.category]
-        q_item = q_list[st.session_state.q_index]
-
-        st.caption(f"{st.session_state.category} - 第 {st.session_state.q_index + 1} 問")
-        st.markdown(f"## {q_item['q']}")
-
-        # 選択肢をラジオボタンで表示
-        choice = st.radio("こたえを えらんでね", q_item['c'], key=f"q_{st.session_state.q_index}", index=None)
-
-        st.divider()
-
-        if not st.session_state.answered:
-            # 「こたえあわせ」ボタン（赤色：type="primary"）
-            if st.button("こたえあわせ", type="primary", use_container_width=True):
-                if choice:
-                    st.session_state.answered = True
-                    st.rerun()
-                else:
-                    st.warning("どれか選んでね！")
-        else:
-            # 正誤判定表示
-            if choice == q_item['a']:
-                st.success(f"✨ せいかい！ ✨")
-                st.balloons()
-            else:
-                st.error(f"ざんねん！ こたえは「{q_item['a']}」でした。")
-
-            # 「つぎへ」ボタン（こたえあわせ後に現れる）
-            if st.button("つぎへ ➔", use_container_width=True):
-                if choice == q_item['a']:
-                    st.session_state.score += 1
-                st.session_state.q_index += 1
-                st.session_state.answered = False
-                if st.session_state.q_index >= 10:
-                    st.session_state.page = "result"
-                st.rerun()
-
-    # リザルト画面
-    elif st.session_state.page == "result":
-        st.title("🏁 おしまい！")
-        st.header(f"10問中 {st.session_state.score}問 正解！")
-        if st.button("トップにもどる", use_container_width=True):
-            st.session_state.page = "top"
-            st.session_state.score = 0
-            st.session_state.q_index = 0
+    for c, icon in zip(st.session_state.quiz_data.keys(), ["🧸", "👔", "🎀", "🚀", "💥", "🎓"]):
+        if st.button(f"{icon} {c}"):
+            st.session_state.course = c
+            st.session_state.score, st.session_state.current_idx = 0, 0
+            st.session_state.is_finished, st.session_state.answered = False, False
+            st.session_state.wrong_list = [] # リセット
             st.rerun()
-            
+    st.stop()
+
+# --- クイズ終了画面（ここで答え合わせ！） ---
+if st.session_state.is_finished:
+    st.title("🏆 結果発表")
+    st.markdown(f"""<div class="quiz-card"><h1>{st.session_state.score} / 10</h1><p>正解したよ！</p></div>""", unsafe_allow_html=True)
+    
+    # 間違えた問題があれば表示
+    if st.session_state.wrong_list:
+        st.subheader("📝 間違えた問題のおさらい")
+        for item in st.session_state.wrong_list:
+            st.markdown(f"""
+                <div class="wrong-card">
+                    <b>問：{item['q']}</b><br>
+                    <span style='color: #ff4d4f;'>あなたの答え：{item['user']}</span><br>
+                    <span style='color: #52c41a; font-weight: bold;'>正解：{item['correct']}</span>
+                </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.balloons()
+        st.success("全問正解！すごすぎる！")
+
+    if st.button("トップにもどる"):
+        st.session_state.course = None
+        st.rerun()
+    st.stop()
+
+# --- プレイ中画面 ---
+col_ret, _ = st.columns([1, 2])
+with col_ret:
+    st.markdown('<div class="retire-btn">', unsafe_allow_html=True)
+    if st.button("リタイア"):
+        st.session_state.course = None
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+quiz = st.session_state.quiz_data[st.session_state.course][st.session_state.current_idx]
+st.title(f"🎉 {st.session_state.course}")
+
+st.markdown(f"""
+    <div class="quiz-card">
+        <div style='font-size: 3.5em;'>{quiz["icon"]}</div>
+        <p style='color: {current_style['main']}; font-weight: bold;'>第 {st.session_state.current_idx + 1} 問</p>
+        <h2 style='font-size: 1.5em;'>{quiz["q"]}</h2>
+    </div>
+    """, unsafe_allow_html=True)
+
+if not st.session_state.hint_visible:
+    if st.button("💡 ヒント"):
+        st.session_state.hint_visible = True
+        st.rerun()
+else:
+    st.info(f"💡 {quiz['h']}")
+
+user_ans = st.text_input("こたえをかいてね", placeholder="なーんだ？", key=f"q_{st.session_state.current_idx}")
+
+# --- アクションエリア ---
+st.write("") 
+if not st.session_state.answered:
+    st.markdown('<div class="ans-btn">', unsafe_allow_html=True)
+    if st.button("✨ こたえあわせ"):
+        if user_ans.strip():
+            st.session_state.answered = True
+            is_correct = user_ans.strip() == quiz["a"]
+            if is_correct:
+                st.session_state.is_correct = True
+                st.session_state.score += 1
+            else:
+                st.session_state.is_correct = False
+                # 間違えた問題をリストに追加
+                st.session_state.wrong_list.append({
+                    "q": quiz["q"],
+                    "user": user_ans.strip(),
+                    "correct": quiz["a"]
+                })
+            st.rerun()
+        else:
+            st.warning("なにか書いてね！")
+    st.markdown('</div>', unsafe_allow_html=True)
+else:
+    if st.session_state.is_correct:
+        st.success("せいかい！ ✨")
+    else:
+        # ここでは正解を出さず、励ますだけ
+        st.error("ざんねん！最後におさらいしよう！")
+    
+    st.markdown('<div class="next-btn">', unsafe_allow_html=True)
+    if st.button("つぎへ ➡️"):
+        if st.session_state.current_idx < 9:
+            st.session_state.current_idx += 1
+            st.session_state.hint_visible = False
+            st.session_state.answered = False
+            st.rerun()
+        else:
+            st.session_state.is_finished = True
+            st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
