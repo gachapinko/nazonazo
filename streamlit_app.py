@@ -4,7 +4,7 @@ import random
 # 1. ページ設定
 st.set_page_config(page_title="暇な時にやろう なぞなぞ パーティー", page_icon="🎉", layout="centered")
 
-# 2. クイズデータ（全カテゴリーをオリジナルの10問ずつに差し替え）
+# 2. クイズデータ
 if "quiz_data" not in st.session_state:
     st.session_state.quiz_data = {
         "子供向け": [
@@ -90,7 +90,7 @@ if "hint_visible" not in st.session_state: st.session_state.hint_visible = False
 if "answered" not in st.session_state: st.session_state.answered = False
 if "wrong_list" not in st.session_state: st.session_state.wrong_list = []
 
-# テーマカラー設定
+# テーマスタイル
 theme_styles = {
     "子供向け": {"bg": "#fff3e0", "main": "#ff8f00", "dots": "#ffcc80"},
     "大人向け": {"bg": "#fffde7", "main": "#fbc02d", "dots": "#fff59d"},
@@ -102,7 +102,6 @@ theme_styles = {
 }
 current_style = theme_styles[str(st.session_state.course)]
 
-# CSS適用
 st.markdown(f"""
     <style>
     .stApp {{
@@ -111,51 +110,19 @@ st.markdown(f"""
         background-size: 40px 40px;
     }}
     .quiz-card {{
-        background-color: #ffffff;
-        padding: 30px;
-        border-radius: 30px;
-        border: 5px solid {current_style['main']};
-        text-align: center;
-        margin-bottom: 20px;
+        background-color: #ffffff; padding: 30px; border-radius: 30px;
+        border: 5px solid {current_style['main']}; text-align: center; margin-bottom: 20px;
     }}
-    .stButton>button {{
-        width: 100%;
-        border-radius: 50px;
-        font-weight: bold;
-        transition: 0.3s;
-        border: none;
-    }}
-    .ans-btn button {{
-        background-color: #ef5350 !important;
-        color: white !important;
-        height: 3.5em !important;
-        box-shadow: 0 4px 0 #c62828;
-    }}
-    .next-btn button {{
-        background-color: {current_style['main']} !important;
-        color: white !important;
-        height: 3.5em !important;
-        box-shadow: 0 4px 0 {current_style['dots']};
-    }}
-    .retire-btn button {{
-        background-color: #f5f5f5 !important;
-        color: #999 !important;
-        height: 2.5em !important;
-    }}
-    .wrong-card {{
-        background-color: #fff1f0;
-        border-left: 5px solid #ff4d4f;
-        padding: 10px 20px;
-        margin-bottom: 10px;
-        border-radius: 10px;
-        text-align: left;
-    }}
+    .stButton>button {{ width: 100%; border-radius: 50px; font-weight: bold; transition: 0.3s; border: none; }}
+    .ans-btn button {{ background-color: #ef5350 !important; color: white !important; height: 3.5em !important; box-shadow: 0 4px 0 #c62828; }}
+    .next-btn button {{ background-color: {current_style['main']} !important; color: white !important; height: 3.5em !important; box-shadow: 0 4px 0 {current_style['dots']}; }}
+    .retire-btn button {{ background-color: #f5f5f5 !important; color: #999 !important; height: 2.5em !important; }}
+    .wrong-card {{ background-color: #fff1f0; border-left: 5px solid #ff4d4f; padding: 15px; margin-bottom: 10px; border-radius: 10px; }}
     h1 {{ text-align: center; font-family: 'Hiragino Maru Gothic Pro'; }}
     </style>
     """, unsafe_allow_html=True)
 
-# --- 画面制御 ---
-
+# --- トップ画面 ---
 if st.session_state.course is None:
     st.title("🎈 暇な時にやろう なぞなぞ パーティー 🎊")
     st.write("<p style='text-align: center;'>どれであそぶ？</p>", unsafe_allow_html=True)
@@ -168,22 +135,25 @@ if st.session_state.course is None:
             st.rerun()
     st.stop()
 
+# --- 結果発表画面 ---
 if st.session_state.is_finished:
     st.title("🏆 結果発表")
     st.markdown(f"""<div class="quiz-card"><h1>{st.session_state.score} / 10</h1><p>正解したよ！</p></div>""", unsafe_allow_html=True)
+    
     if st.session_state.wrong_list:
         st.subheader("📝 間違えた問題のおさらい")
         for item in st.session_state.wrong_list:
-            st.markdown(f"""<div class="wrong-card"><b>問：{item['q']}</b><br><span style='color: #ff4d4f;'>あなたの答え：{item['user']}</span><br><span style='color: #52c41a; font-weight: bold;'>正解：{item['correct']}</span></div>""", unsafe_allow_html=True)
+            st.markdown(f"""<div class="wrong-card"><b>問：{item['q']}</b><br><span style='color: #ff4d4f;'>君の答え：{item['user']}</span><br><span style='color: #52c41a; font-weight: bold;'>正解：{item['correct']}</span></div>""", unsafe_allow_html=True)
     else:
-        st.balloons()
-        st.success("全問正解！すごすぎる！")
+        st.balloons() # パーフェクトの時はさらに風船！
+        st.success("全問正解！なぞなぞマスターだね！")
+
     if st.button("トップにもどる"):
         st.session_state.course = None
         st.rerun()
     st.stop()
 
-# プレイ画面
+# --- プレイ画面 ---
 col_ret, _ = st.columns([1, 2])
 with col_ret:
     st.markdown('<div class="retire-btn">', unsafe_allow_html=True)
@@ -194,7 +164,7 @@ with col_ret:
 
 quiz = st.session_state.quiz_data[st.session_state.course][st.session_state.current_idx]
 st.title(f"🎉 {st.session_state.course}")
-st.markdown(f"""<div class="quiz-card"><div style='font-size: 3.5em;'>{quiz["icon"]}</div><p style='color: {current_style['main']}; font-weight: bold;'>第 {st.session_state.current_idx + 1} 問</p><h2 style='font-size: 1.5em;'>{quiz["q"]}</h2></div>""", unsafe_allow_html=True)
+st.markdown(f"""<div class="quiz-card"><div style='font-size: 3.5em;'>{quiz["icon"]}</div><p style='color: {current_style['main']}; font-weight: bold;'>第 {st.session_state.current_idx + 1} 問</p><h2>{quiz["q"]}</h2></div>""", unsafe_allow_html=True)
 
 if not st.session_state.hint_visible:
     if st.button("💡 ヒント"):
@@ -223,10 +193,13 @@ if not st.session_state.answered:
             st.warning("なにか書いてね！")
     st.markdown('</div>', unsafe_allow_html=True)
 else:
+    # --- ここで風船の判定！ ---
     if st.session_state.is_correct:
+        st.balloons() # ← 正解した瞬間にブワーッと出す！
         st.success("せいかい！ ✨")
     else:
         st.error("ざんねん！最後におさらいしよう！")
+    
     st.markdown('<div class="next-btn">', unsafe_allow_html=True)
     if st.button("つぎへ ➡️"):
         if st.session_state.current_idx < 9:
