@@ -2,7 +2,7 @@ import streamlit as st
 import random
 
 # 1. ページ設定
-st.set_page_config(page_title="なぞなぞ パーティー", page_icon="🎉")
+st.set_page_config(page_title="なぞなぞ パーティー", page_icon="🎉", layout="centered")
 
 # 2. クイズデータ（各10問）
 if "quiz_data" not in st.session_state:
@@ -37,108 +37,157 @@ if "quiz_data" not in st.session_state:
         "雑学クイズ": [{"q": "シマウマの地肌の色は？", "h": "白か黒か...", "a": "黒", "icon": "🦓"}] * 10
     }
 
-# 3. セッション状態の初期化
-if "course" not in st.session_state:
-    st.session_state.course = None
-if "current_idx" not in st.session_state:
-    st.session_state.current_idx = 0
-if "score" not in st.session_state:
-    st.session_state.score = 0
-if "is_finished" not in st.session_state:
-    st.session_state.is_finished = False
-if "hint_visible" not in st.session_state:
-    st.session_state.hint_visible = False
+# 3. セッション管理
+if "course" not in st.session_state: st.session_state.course = None
+if "current_idx" not in st.session_state: st.session_state.current_idx = 0
+if "score" not in st.session_state: st.session_state.score = 0
+if "is_finished" not in st.session_state: st.session_state.is_finished = False
+if "hint_visible" not in st.session_state: st.session_state.hint_visible = False
+if "answered" not in st.session_state: st.session_state.answered = False
 
-# --- コース選択画面 ---
-if st.session_state.course is None:
-    st.title("🎈 なぞなぞ パーティー 🎊")
-    st.write("<p style='text-align: center; font-size: 1.5em;'>どれであそぶ？</p>", unsafe_allow_html=True)
-    row1 = st.columns(3)
-    row2 = st.columns(3)
-    courses = list(st.session_state.quiz_data.keys())
-    icons = ["🧸", "👔", "🎀", "🚀", "💥", "🎓"]
-    for i, (c, icon) in enumerate(zip(courses, icons)):
-        target_row = row1 if i < 3 else row2
-        if target_row[i % 3].button(f"{icon} {c}"):
-            st.session_state.course = c
-            st.session_state.score = 0
-            st.session_state.current_idx = 0
-            st.session_state.is_finished = False
-            st.rerun()
-    st.stop()
-
-# --- クイズ画面 or 結果画面 ---
-course = st.session_state.course
-quiz_list = st.session_state.quiz_data[course]
+# テーマ設定
 theme_styles = {
     "子供向け": {"bg": "#fff3e0", "main": "#ff8f00", "dots": "#ffcc80"},
     "大人向け": {"bg": "#fffde7", "main": "#fbc02d", "dots": "#fff59d"},
     "女の子向け": {"bg": "#fce4ec", "main": "#ec407a", "dots": "#f8bbd0"},
     "男の子向け": {"bg": "#e3f2fd", "main": "#1e88e5", "dots": "#bbdefb"},
     "ひっかけ問題": {"bg": "#f3e5f5", "main": "#8e24aa", "dots": "#e1bee7"},
-    "雑学クイズ": {"bg": "#e8f5e9", "main": "#43a047", "dots": "#c8e6c9"}
+    "雑学クイズ": {"bg": "#e8f5e9", "main": "#43a047", "dots": "#c8e6c9"},
+    "None": {"bg": "#ffffff", "main": "#ff8f00", "dots": "#eeeeee"}
 }
-style = theme_styles[course]
+current_style = theme_styles[str(st.session_state.course)]
 
-st.markdown(f"<style>.stApp {{ background-color: {style['bg']}; background-image: radial-gradient({style['dots']} 2px, transparent 2px); background-size: 40px 40px; }} .quiz-card {{ background-color: #ffffff; padding: 40px; border-radius: 40px; border: 6px solid {style['main']}; text-align: center; }} .stButton>button {{ width: 100%; border-radius: 50px; background-color: {style['main']}; color: white; border: none; height: 3.5em; font-weight: bold; }} .retire-btn > div > button {{ background-color: rgba(0,0,0,0.1) !important; color: #444 !important; }} h1 {{ text-align: center; color: {style['main']}; }}</style>", unsafe_allow_html=True)
-
-# 🏆 結果発表画面
-if st.session_state.is_finished:
-    st.title("✨ パーティー・リザルト ✨")
-    st.markdown(f"""
-        <div class="quiz-card">
-            <div style='font-size: 5em;'>🏆</div>
-            <h2>お疲れ様でした！</h2>
-            <p style='font-size: 1.5em;'>あなたのスコアは...</p>
-            <h1 style='font-size: 4em;'>{st.session_state.score} / 10</h1>
-            <p>{ "パーティーの主役級！" if st.session_state.score >= 8 else "ナイス・チャレンジ！" }</p>
-        </div>
+# スタイル適用
+st.markdown(f"""
+    <style>
+    .stApp {{
+        background-color: {current_style['bg']};
+        background-image: radial-gradient({current_style['dots']} 2px, transparent 2px);
+        background-size: 40px 40px;
+    }}
+    .quiz-card {{
+        background-color: #ffffff;
+        padding: 30px;
+        border-radius: 30px;
+        border: 5px solid {current_style['main']};
+        text-align: center;
+        margin-bottom: 20px;
+    }}
+    /* ボタンの共通設定 */
+    .stButton>button {{
+        width: 100%;
+        border-radius: 50px;
+        font-weight: bold;
+        transition: 0.3s;
+        border: none;
+    }}
+    /* ヒント（小さめ・黄色） */
+    div[data-testid="stVerticalBlock"] > div:nth-child(3) .stButton>button {{
+        height: 2.2em;
+        background-color: #fff9c4;
+        color: #fbc02d;
+        font-size: 0.8em;
+    }}
+    /* 答え合わせ（赤系） */
+    div[data-testid="column"]:nth-child(1) .stButton>button {{
+        background-color: #ef5350;
+        color: white;
+        height: 3.5em;
+    }}
+    /* 次へ（テーマカラー） */
+    div[data-testid="column"]:nth-child(2) .stButton>button {{
+        background-color: {current_style['main']};
+        color: white;
+        height: 3.5em;
+    }}
+    .retire-btn button {{
+        background-color: #f5f5f5 !important;
+        color: #999 !important;
+        height: 2.5em !important;
+    }}
+    h1 {{ text-align: center; font-family: 'Hiragino Maru Gothic Pro'; }}
+    /* スマホ用調整 */
+    @media (max-width: 640px) {{
+        .quiz-card {{ padding: 20px; }}
+        h1 {{ font-size: 1.8em; }}
+    }}
+    </style>
     """, unsafe_allow_html=True)
-    if st.button("もういちど遊ぶ"):
+
+# --- トップ画面 ---
+if st.session_state.course is None:
+    st.title("🎈 なぞなぞ パーティー 🎊")
+    st.write("<p style='text-align: center;'>どれであそぶ？</p>", unsafe_allow_html=True)
+    
+    # スマホでも崩れないように、1つずつのボタンにするか2列にする
+    for c, icon in zip(st.session_state.quiz_data.keys(), ["🧸", "👔", "🎀", "🚀", "💥", "🎓"]):
+        if st.button(f"{icon} {c}"):
+            st.session_state.course = c
+            st.session_state.score, st.session_state.current_idx = 0, 0
+            st.session_state.is_finished, st.session_state.answered = False, False
+            st.rerun()
+    st.stop()
+
+# --- クイズ終了画面 ---
+if st.session_state.is_finished:
+    st.title("🏆 結果発表")
+    st.markdown(f"""<div class="quiz-card"><h1>{st.session_state.score} / 10</h1><p>正解したよ！</p></div>""", unsafe_allow_html=True)
+    if st.button("トップにもどる"):
         st.session_state.course = None
         st.rerun()
     st.stop()
 
-# 📝 クイズ中画面
-st.markdown('<div class="retire-btn">', unsafe_allow_html=True)
-if st.button("🏃‍♂️ リタイアする"):
-    st.session_state.course = None
-    st.rerun()
-st.markdown('</div>', unsafe_allow_html=True)
+# --- プレイ中画面 ---
+col_ret, _ = st.columns([1, 2])
+with col_ret:
+    st.markdown('<div class="retire-btn">', unsafe_allow_html=True)
+    if st.button("リタイア"):
+        st.session_state.course = None
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
-quiz = quiz_list[st.session_state.current_idx]
-st.title(f"🎉 {course}")
+quiz = st.session_state.quiz_data[st.session_state.course][st.session_state.current_idx]
+st.title(f"🎉 {st.session_state.course}")
 
 st.markdown(f"""
     <div class="quiz-card">
-        <div style='font-size: 4em; margin-bottom: 15px;'>{quiz["icon"]}</div>
-        <p style='color: {style['main']}; font-weight: bold;'>第 {st.session_state.current_idx + 1} 問 / 10</p>
-        <h2 style='color: #333;'>{quiz["q"]}</h2>
+        <div style='font-size: 3.5em;'>{quiz["icon"]}</div>
+        <p style='color: {current_style['main']}; font-weight: bold;'>第 {st.session_state.current_idx + 1} 問</p>
+        <h2 style='font-size: 1.5em;'>{quiz["q"]}</h2>
     </div>
     """, unsafe_allow_html=True)
 
+# ヒントセクション（重なり防止）
+st.write("") # スペース確保
 if not st.session_state.hint_visible:
-    if st.button("💡 ヒントをみる"):
+    if st.button("💡 ヒント"):
         st.session_state.hint_visible = True
         st.rerun()
 else:
-    st.warning(f"💡 ヒント： {quiz['h']}")
+    st.info(f"💡 {quiz['h']}")
 
-user_ans = st.text_input("こたえをかいてね", placeholder="なーんだ？", key=f"ans_{st.session_state.current_idx}")
+# 回答入力
+user_ans = st.text_input("こたえをかいてね", placeholder="なーんだ？", key=f"q_{st.session_state.current_idx}")
 
-if st.button("✨ こたえあわせ"):
-    if user_ans.strip() == quiz["a"]:
-        st.balloons()
-        st.session_state.score += 1
-        st.success("🎉 せいかい！")
-    else:
-        st.error(f"💦 ざんねん！ 答えは「{quiz['a']}」だったよ。")
-    
-    # 3秒待たずにボタンで次に進ませる
+# アクションボタン
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("✨ 判定"):
+        st.session_state.answered = True
+        if user_ans.strip() == quiz["a"]:
+            st.balloons()
+            st.session_state.score += 1
+            st.success("正解！")
+        else:
+            st.error(f"残念！答え：{quiz['a']}")
+
+with col2:
+    # 状態を確実に進めるためにキーを工夫
     if st.button("つぎへ ➡️"):
         if st.session_state.current_idx < 9:
             st.session_state.current_idx += 1
             st.session_state.hint_visible = False
+            st.session_state.answered = False
             st.rerun()
         else:
             st.session_state.is_finished = True
